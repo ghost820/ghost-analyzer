@@ -1,0 +1,8 @@
+target/
+node_modules/
+dist/
+dist-electron/
+*.node
+crates/ghost-bridge/index.js
+crates/ghost-bridge/index.d.ts
+*.tsbuildinfo

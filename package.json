@@ -1,0 +1,14 @@
+{
+  "name": "ghost-analyzer",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["crates/ghost-bridge", "apps/desktop"],
+  "scripts": {
+    "build:native": "npm run build -w @ghost/bridge",
+    "dev": "npm run build:native && npm run dev -w @ghost/desktop",
+    "start": "npm run build:native && npm run start -w @ghost/desktop",
+    "typecheck": "npm run typecheck -w @ghost/desktop",
+    "build": "npm run build:native && npm run build -w @ghost/desktop",
+    "check:rust": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace"
+  }
+}
