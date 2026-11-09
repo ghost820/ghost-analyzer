@@ -1,3 +1,5 @@
+pub mod graph;
+
 use ghost_dsp::{Complex32, ComplexOscillator, SpectrumAnalyzer};
 
 pub use ghost_dsp::DspError;
