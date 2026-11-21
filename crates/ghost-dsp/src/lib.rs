@@ -3,7 +3,8 @@
 use std::f32::consts::TAU;
 use std::sync::Arc;
 
-use rustfft::num_complex::{Complex32 as C32, ComplexFloat};
+pub use rustfft::num_complex::Complex32 as C32;
+use rustfft::num_complex::ComplexFloat;
 
 pub const fn c32(re: f32, im: f32) -> C32 {
     C32::new(re, im)
@@ -19,6 +20,14 @@ pub fn generate_complex_tone(fs: f32, A: f32, freq: f32, mut phase: f32, out: &m
     }
 
     phase
+}
+
+pub fn sum_complex(inputs: &[&[C32]], out: &mut [C32]) {
+    for input in inputs {
+        for (result, &sample) in out.iter_mut().zip(input.iter()) {
+            *result += sample;
+        }
+    }
 }
 
 pub fn mean_power(samples: &[C32]) -> f32 {
