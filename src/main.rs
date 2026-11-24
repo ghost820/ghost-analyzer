@@ -1,3 +1,5 @@
+mod dsp;
+
 use eframe::egui::{CentralPanel, Color32, DragValue, Frame, Key, Pos2, Ui, Visuals};
 use eframe::{App, NativeOptions};
 use egui_snarl::ui::{PinInfo, SnarlPin, SnarlStyle, SnarlViewer, SnarlWidget};
