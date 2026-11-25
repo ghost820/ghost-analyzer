@@ -1,4 +1,5 @@
 mod dsp;
+mod graph_compiler;
 
 use eframe::egui::{CentralPanel, Color32, DragValue, Frame, Key, Pos2, Ui, Visuals};
 use eframe::{App, NativeOptions};
