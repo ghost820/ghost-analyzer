@@ -7,7 +7,7 @@ use egui_snarl::{InPin, NodeId, OutPin, Snarl};
 
 enum Node {
     FileSource { path: String },
-    Gain(f32),
+    Gain(dsp::Gain),
     AudioSink,
 }
 
@@ -73,8 +73,15 @@ impl SnarlViewer<Node> for GraphViewer {
                 ui.label("Path:");
                 ui.text_edit_singleline(path);
             }
-            Node::Gain(gain) => {
-                ui.add(DragValue::new(gain).speed(0.01).prefix("Gain: "));
+            Node::Gain(dsp) => {
+                let mut value = dsp.gain();
+
+                if ui
+                    .add(DragValue::new(&mut value).speed(0.01).prefix("Gain: "))
+                    .changed()
+                {
+                    dsp.set_gain(value);
+                }
             }
             Node::AudioSink => {}
         }
@@ -96,7 +103,7 @@ impl SnarlViewer<Node> for GraphViewer {
         }
 
         if ui.button("Gain").clicked() {
-            snarl.insert_node(pos, Node::Gain(1.0));
+            snarl.insert_node(pos, Node::Gain(dsp::Gain::new(1.0)));
             ui.close();
         }
 
