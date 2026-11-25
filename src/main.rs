@@ -1,7 +1,7 @@
 mod dsp;
 mod graph_compiler;
 
-use eframe::egui::{CentralPanel, Color32, DragValue, Frame, Key, Pos2, Ui, Visuals};
+use eframe::egui::{Button, CentralPanel, Color32, DragValue, Frame, Key, Pos2, Ui, Visuals};
 use eframe::{App, NativeOptions};
 use egui_snarl::ui::{PinInfo, SnarlPin, SnarlStyle, SnarlViewer, SnarlWidget};
 use egui_snarl::{InPin, NodeId, OutPin, Snarl};
@@ -122,6 +122,23 @@ impl SnarlViewer<Node> for GraphViewer {
 
 struct GhostAnalyzer {
     graph: Snarl<Node>,
+    audio_sink: Option<dsp::AudioSink>,
+}
+
+impl GhostAnalyzer {
+    fn start(&mut self) {
+        let (mut runtime, sample_rate, channels) = graph_compiler::compile(&self.graph);
+
+        self.audio_sink = Some(dsp::AudioSink::start(
+            sample_rate,
+            channels,
+            move |output| runtime.process(output),
+        ));
+    }
+
+    fn stop(&mut self) {
+        self.audio_sink = None;
+    }
 }
 
 impl App for GhostAnalyzer {
@@ -129,6 +146,20 @@ impl App for GhostAnalyzer {
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).fill(Color32::from_rgb(9, 12, 18)))
             .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let running = self.audio_sink.is_some();
+
+                    if ui.add_enabled(!running, Button::new("Start")).clicked() {
+                        self.start();
+                    }
+
+                    if ui.add_enabled(running, Button::new("Stop")).clicked() {
+                        self.stop();
+                    }
+                });
+
+                ui.separator();
+
                 let mut style = SnarlStyle::new();
                 style.bg_frame = Some(Frame::NONE);
 
@@ -155,6 +186,7 @@ fn main() -> eframe::Result {
             cc.egui_ctx.set_visuals(Visuals::dark());
             Ok(Box::new(GhostAnalyzer {
                 graph: Snarl::new(),
+                audio_sink: None,
             }))
         }),
     )
