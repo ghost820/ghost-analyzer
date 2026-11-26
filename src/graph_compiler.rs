@@ -3,9 +3,16 @@ use std::collections::HashMap;
 use egui_snarl::{InPinId, NodeId, Snarl};
 
 use crate::Node;
-use crate::dsp::{self, RuntimeGraph, RuntimeNode};
+use crate::dsp::{self, PlotReader, PlotTap, RuntimeGraph, RuntimeNode};
 
-pub fn compile(graph: &Snarl<Node>) -> (RuntimeGraph, u32, u16) {
+pub struct CompiledGraph {
+    pub runtime: RuntimeGraph,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub plot_readers: Vec<(NodeId, PlotReader)>,
+}
+
+pub fn compile(graph: &Snarl<Node>) -> CompiledGraph {
     let sink = graph
         .node_ids()
         .find_map(|(id, node)| matches!(node, Node::AudioSink).then_some(id))
@@ -23,11 +30,31 @@ pub fn compile(graph: &Snarl<Node>) -> (RuntimeGraph, u32, u16) {
     let sample_rate = source.sample_rate;
     let channels = source.channels;
 
-    (
-        RuntimeGraph::new(nodes, output_node, channels),
+    let mut plot_taps = Vec::new();
+    let mut plot_readers = Vec::new();
+
+    for (id, node) in graph.node_ids() {
+        if matches!(node, Node::TimePlot(_) | Node::FftPlot(_)) {
+            let input = compile_node(graph, input_node(graph, id), &mut nodes, &mut indices);
+            let (tap, reader) = PlotTap::new(channels);
+
+            plot_taps.push((input, tap));
+            plot_readers.push((id, reader));
+        }
+    }
+
+    let mut runtime = RuntimeGraph::new(nodes, output_node, channels);
+
+    for (input, tap) in plot_taps {
+        runtime.add_plot_tap(input, tap);
+    }
+
+    CompiledGraph {
+        runtime,
         sample_rate,
         channels,
-    )
+        plot_readers,
+    }
 }
 
 fn compile_node(
@@ -50,7 +77,7 @@ fn compile_node(
                 gain: dsp.clone(),
             }
         }
-        Node::AudioSink => unreachable!(),
+        Node::AudioSink | Node::TimePlot(_) | Node::FftPlot(_) => unreachable!(),
     };
 
     let index = nodes.len();
