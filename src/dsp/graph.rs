@@ -40,29 +40,33 @@ impl RuntimeGraph {
         for chunk in output.chunks_mut(self.block_size) {
             let len = chunk.len();
 
-            for (index, node) in self.nodes.iter_mut().enumerate() {
-                let offset = index * self.block_size;
-                let (previous, current) = self.buffers.split_at_mut(offset);
-                let target = &mut current[..len];
-
-                match node {
-                    RuntimeNode::FileSource(source) => {
-                        source.process(target);
-                    }
-                    RuntimeNode::Gain { input, gain } => {
-                        let offset = *input * self.block_size;
-                        gain.process(&previous[offset..offset + len], target);
-                    }
-                }
-            }
-
-            for (input, tap) in &mut self.plot_taps {
-                let offset = *input * self.block_size;
-                tap.process(&self.buffers[offset..offset + len]);
-            }
+            self.process_block(len);
 
             let offset = self.output_node * self.block_size;
             chunk.copy_from_slice(&self.buffers[offset..offset + len]);
+        }
+    }
+
+    pub fn process_block(&mut self, len: usize) {
+        for (index, node) in self.nodes.iter_mut().enumerate() {
+            let offset = index * self.block_size;
+            let (previous, current) = self.buffers.split_at_mut(offset);
+            let target = &mut current[..len];
+
+            match node {
+                RuntimeNode::FileSource(source) => {
+                    source.process(target);
+                }
+                RuntimeNode::Gain { input, gain } => {
+                    let offset = *input * self.block_size;
+                    gain.process(&previous[offset..offset + len], target);
+                }
+            }
+        }
+
+        for (input, tap) in &mut self.plot_taps {
+            let offset = *input * self.block_size;
+            tap.process(&self.buffers[offset..offset + len]);
         }
     }
 }
